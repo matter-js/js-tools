@@ -26,8 +26,8 @@
         "preserveConstEnums": true,
 
         // Emit source/declaration maps to align the behavior of esbuild setup.
-        "sourceMap": true,
-        "declarationMap": true,
+
+        "skipLibCheck": true,
 
         // Enforce a subset of our code conventions
         "forceConsistentCasingInFileNames": true,
