@@ -13,9 +13,10 @@ import { Wrapper } from "./wrapper.js";
  * Text output with high-level formatting functionality.
  */
 export interface Printer extends Consumer {
-    (...text: Producer.Sequence): void;
+    (...text: Printer.Sequence): void;
 
     target: Consumer;
+    write(...text: Printer.Sequence): void;
 
     writeTruncated(...text: Producer.Sequence): void;
     writeTruncatedLine(...text: Producer.Sequence): void;
@@ -25,9 +26,31 @@ export function Printer(target: Consumer, options?: Printer.Options) {
     target = options?.wrap ? new Wrapper(target, options.wrap) : target;
     let truncator: undefined | Truncator;
 
-    const printer = function Printer(...text: Producer.Sequence) {
+    const printer = function Printer(...text: Printer.Sequence) {
         printer.write(...text);
     } as Printer;
+
+    function writeItems(...text: Printer.Sequence) {
+        const pending: Producer.Sequence = [];
+
+        function flush() {
+            if (pending.length) {
+                target.write(...pending);
+                pending.length = 0;
+            }
+        }
+
+        for (const item of text) {
+            if (Printer.isRenderable(item)) {
+                flush();
+                item.renderTo(printer);
+            } else {
+                pending.push(item as Producer.Sequence[number]);
+            }
+        }
+
+        flush();
+    }
 
     Object.defineProperties(printer, {
         target: {
@@ -43,9 +66,7 @@ export function Printer(target: Consumer, options?: Printer.Options) {
         },
 
         write: {
-            value(...text: Producer.Sequence) {
-                target.write(...text);
-            },
+            value: writeItems,
         },
 
         close: {
@@ -82,5 +103,21 @@ export function Printer(target: Consumer, options?: Printer.Options) {
 export namespace Printer {
     export interface Options extends Consumer.Options {
         wrap?: Wrapper.Options;
+    }
+
+    /**
+     * An object that can render itself to a {@link Printer}.
+     */
+    export interface Renderable {
+        renderTo(printer: Printer): void;
+    }
+
+    /**
+     * Extended sequence type that accepts {@link Renderable} in addition to standard {@link Producer.Sequence} items.
+     */
+    export type Sequence = Array<string | import("./token.js").Token | Producer | Renderable>;
+
+    export function isRenderable(item: Sequence[number]): item is Renderable {
+        return typeof item === "object" && item !== null && "renderTo" in item && typeof item.renderTo === "function";
     }
 }
