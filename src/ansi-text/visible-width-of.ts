@@ -13,6 +13,22 @@ export function visibleWidthOf(str: string) {
     for (let i = 0; i < str.length; i++) {
         const charCode = str.charCodeAt(i);
 
+        // Skip ANSI CSI sequences: ESC [ <params> <terminator>
+        if (charCode === 0x1b && str.charCodeAt(i + 1) === 0x5b) {
+            i += 2;
+            while (i < str.length) {
+                const ch = str.charCodeAt(i);
+                // Parameter bytes (0x30–0x3f) and intermediate bytes (0x20–0x2f)
+                if (ch >= 0x20 && ch <= 0x3f) {
+                    i++;
+                } else {
+                    // Final byte (0x40–0x7e) — skip it and break
+                    break;
+                }
+            }
+            continue;
+        }
+
         // Skip zero width characters
         switch (charCode) {
             case 0x200b: // zwsp

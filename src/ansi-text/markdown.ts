@@ -4,20 +4,21 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { MarkdownStyles } from "./markdown-styles.js";
 import type { Printer } from "./printer.js";
 import { Style } from "./style.js";
 
 const BOLD = Style([1]);
-const BOLD_UNDERLINE = Style([1, 4]);
-const CODE = Style([36]); // cyan
 
 /**
  * A {@link Printer.Renderable} that renders a subset of markdown to the terminal.
  *
  * Supported syntax:
  *
- *   - `#` headings (bold + underline)
- *   - `##` headings (bold)
+ *   - `#` headings (h1 — bold + underline)
+ *   - `##` headings (h2 — bold)
+ *   - `###` headings (h3 — underline)
+ *   - `####` headings (h4 — dim)
  *   - `**bold**` inline
  *   - `` `code` `` inline (cyan)
  *   - `*` / `-` unordered bullet lists
@@ -43,8 +44,8 @@ export function Markdown(text: string): Printer.Renderable {
                     continue;
                 }
 
-                // Heading: # or ##
-                const headingMatch = trimmed.match(/^(#{1,2})\s+(.*)/);
+                // Heading: # through ####
+                const headingMatch = trimmed.match(/^(#{1,4})\s+(.*)/);
                 if (headingMatch) {
                     if (!firstBlock) {
                         printer.write("\n");
@@ -53,7 +54,8 @@ export function Markdown(text: string): Printer.Renderable {
 
                     const level = headingMatch[1].length;
                     const content = headingMatch[2];
-                    const style = level === 1 ? BOLD_UNDERLINE : BOLD;
+                    const headingStyles = [MarkdownStyles.h1, MarkdownStyles.h2, MarkdownStyles.h3, MarkdownStyles.h4];
+                    const style = headingStyles[level - 1];
 
                     using _cx = printer.state({ style });
                     printer.write(content, "\n");
@@ -84,7 +86,7 @@ export function Markdown(text: string): Printer.Renderable {
                         if (prev === "") {
                             break;
                         }
-                        if (!prev.match(/^#{1,2}\s/) && !prev.match(/^[*-]\s/)) {
+                        if (!prev.match(/^#{1,4}\s/) && !prev.match(/^[*-]\s/)) {
                             prevWasParagraph = true;
                         }
                         break;
@@ -123,7 +125,7 @@ function renderInline(printer: Printer, text: string) {
             printer.write(match[2]);
         } else if (match[3] !== undefined) {
             // `code`
-            using _cx = printer.state({ style: CODE });
+            using _cx = printer.state({ style: MarkdownStyles.code });
             printer.write(match[3]);
         }
 

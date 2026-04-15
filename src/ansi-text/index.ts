@@ -7,10 +7,12 @@
 // Note -- don't put ./std.js here because it's not cross platform
 
 export * from "./definition-list.js";
+export * from "./markdown-styles.js";
 export * from "./markdown.js";
 export * from "./printer.js";
 export * from "./screen.js";
 export * from "./style.js";
 export * from "./text-builder.js";
 export * from "./text-writer.js";
+export * from "./visible-width-of.js";
 export * from "./wrapper.js";
