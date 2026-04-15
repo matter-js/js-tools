@@ -27,6 +27,9 @@
             }
         },
         "./ansi-text": {
+            "dev-types": {
+                "types": "./src/ansi-text/index.ts"
+            },
             "import": {
                 "types": "./dist/esm/ansi-text/index.d.ts",
                 "default": "./dist/esm/ansi-text/index.js"

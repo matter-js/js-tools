@@ -107,11 +107,7 @@ export async function main(argv = process.argv) {
 
     const pkg = new Package({ path: args.prefix });
     if (mode === Mode.BuildProject) {
-        if (pkg.isWorkspace) {
-            mode = Mode.BuildWorkspace;
-        } else if (args.dependencies) {
-            mode = Mode.BuildProjectWithDependencies;
-        }
+        mode = pkg.isWorkspace ? Mode.BuildWorkspace : Mode.BuildProjectWithDependencies;
     }
 
     function builder(graph?: Graph) {
@@ -119,18 +115,15 @@ export async function main(argv = process.argv) {
     }
 
     switch (mode as Mode) {
-        case Mode.BuildProject:
-            const project = new Project(args.prefix);
-            await builder().build(project);
-            break;
-
         case Mode.BuildProjectWithDependencies:
             {
                 const graph = await Graph.forProject(args.prefix);
-                if (graph === undefined) {
-                    throw new Error(`Cannot build with dependencies because ${args.prefix} is not in a workspace`);
+                if (graph !== undefined) {
+                    await graph.build(builder(graph));
+                } else {
+                    // Not in a workspace; build the single project directly
+                    await builder().build(new Project(args.prefix));
                 }
-                await graph.build(builder(graph));
             }
             break;
 

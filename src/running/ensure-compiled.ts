@@ -43,7 +43,7 @@ export async function ensureCompiled(path: string) {
         const dependencies = await Graph.forProject(path);
         if (dependencies) {
             // Project is in a workspace; build along with dependencies from the same workspace
-            await dependencies.build(builder, false);
+            await dependencies.build(builder);
         } else {
             // Project is not in a workspace; only build the project
             const project = new Project(pkg);

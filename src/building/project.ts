@@ -5,8 +5,7 @@
  */
 
 import { build as esbuild, Format } from "esbuild";
-import { Hash } from "node:crypto";
-import { cp, mkdir, readFile, rm, symlink, writeFile } from "node:fs/promises";
+import { cp, mkdir, rm, symlink, writeFile } from "node:fs/promises";
 import { platform } from "node:os";
 import { dirname, join } from "node:path";
 import { ignoreError } from "../util/errors.js";
@@ -20,16 +19,6 @@ export interface BuildInformation {
      * Time of last build.  Compared to source files to determine whether build is dirty.
      */
     timestamp?: string;
-
-    /**
-     * API signature.  Used by dependents to determine whether they need to rebuild after we do.
-     */
-    apiSha?: string;
-
-    /**
-     * API signature of each dependency.  Compared to apiSha of each dependency during dirty detection.
-     */
-    dependencyApiShas?: Record<string, string>;
 }
 
 export class Project {
@@ -90,27 +79,6 @@ export class Project {
 
     get hasDeclarations() {
         return this.pkg.hasDirectory("build/types");
-    }
-
-    async hashDeclarations(apiSha: Hash) {
-        if (!this.pkg.isLibrary) {
-            return;
-        }
-
-        let path;
-        if (this.pkg.supportsEsm) {
-            path = "esm";
-        } else if (this.pkg.supportsCjs) {
-            path = "cjs";
-        } else {
-            return;
-        }
-
-        const declarations = (await this.pkg.glob(`dist/${path}/**/*.d.{ts,mts,cts}`)).sort();
-        for (const file of declarations) {
-            apiSha.update(file);
-            apiSha.update(await readFile(file));
-        }
     }
 
     async recordBuildInfo(info: BuildInformation) {

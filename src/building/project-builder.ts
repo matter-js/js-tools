@@ -4,13 +4,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { createHash } from "node:crypto";
 import { Progress } from "../util/progress.js";
 import { BuildError } from "./error.js";
 import { Graph } from "./graph.js";
 import { BuildInformation, Project } from "./project.js";
 import { createTsgoContext, createTypescriptContext } from "./typescript.js";
 import { TypescriptContext } from "./typescript/context.js";
+import { copyDeclarationsToCjs } from "./typescript/tsgo.js";
 
 export enum Target {
     clean = "clean",
@@ -37,6 +37,26 @@ export class ProjectBuilder {
     graph?: Graph;
     tsgo?: boolean;
 
+    /**
+     * When true, type checking has already been performed by a batched tsgo -b invocation.  {@link #doBuild} skips
+     * TypescriptContext calls and instead does CJS .d.ts copy + API SHA for the pre-emitted declarations.
+     */
+    typesPrebuilt = false;
+
+    /**
+     * Work queue populated by {@link #doBuild} when {@link typesPrebuilt} is true.  The graph drains this via
+     * {@link flushWork} with throttled parallelism.
+     */
+    #work = Array<() => Promise<void>>();
+
+    /**
+     * Execute all enqueued work with a concurrency limit and clear the queue.
+     */
+    async flushWork() {
+        await parallel(this.#work);
+        this.#work = [];
+    }
+
     constructor(private options: Options = {}) {
         this.graph = options.graph;
         this.unconditional =
@@ -56,6 +76,14 @@ export class ProjectBuilder {
         return this.options.targets && this.options.targets.length > 0;
     }
 
+    hasTarget(target: Target) {
+        // No explicit targets means all build targets (not clean)
+        if (!this.options.targets?.length) {
+            return target !== Target.clean;
+        }
+        return this.options.targets.includes(target);
+    }
+
     public async configure(project: Project) {
         if (!project.pkg.hasConfig) {
             return;
@@ -64,18 +92,23 @@ export class ProjectBuilder {
         await project.configure();
     }
 
-    public async build(project: Project) {
-        const progress = project.pkg.start("Building");
+    public async build(project: Project, progress?: Progress) {
+        const ownProgress = progress === undefined;
+        progress ??= project.pkg.start("Building");
 
         try {
             await this.#doBuild(project, progress);
         } catch (e: any) {
-            progress.close();
+            if (ownProgress) {
+                progress.close();
+            }
             process.stderr.write(`${e.stack ?? e.message}\n\n`);
             process.exit(1);
         }
 
-        progress.close();
+        if (ownProgress) {
+            progress.close();
+        }
     }
 
     async #doBuild(project: Project, progress: Progress) {
@@ -95,103 +128,100 @@ export class ProjectBuilder {
 
         await config?.before?.({ project });
 
-        // If available we use graph to access dependency API shas
         const graph = this.graph ?? (await Graph.forProject(project.pkg.path));
         let node: Graph.Node | undefined;
         if (graph) {
             node = graph.get(project.pkg.name);
-            for (const dep of node.dependencies) {
-                if (dep.info.apiSha !== undefined) {
-                    if (info.dependencyApiShas === undefined) {
-                        info.dependencyApiShas = {};
-                    }
-                    info.dependencyApiShas[dep.pkg.name] = dep.info.apiSha;
-                }
-            }
         }
 
         if (targets.has(Target.types)) {
-            try {
-                // Obtain or initialize typescript solution builder
-                let context = this.tsContext;
-                if (context === undefined) {
-                    if (this.tsgo) {
-                        context = createTsgoContext(project.pkg.workspace);
-                    } else {
-                        context = await createTypescriptContext(project.pkg.workspace, graph);
+            if (this.typesPrebuilt) {
+                // Types were already checked by batched tsgo -b.  Enqueue remaining work into the shared work queue
+                // for throttled parallel execution.  API SHA is unnecessary — tsgo -b handles incremental tracking
+                // internally.
+                if (targets.has(Target.esm)) {
+                    this.#work.push(() => project.buildSource("esm"));
+                    if (project.pkg.hasTests) {
+                        this.#work.push(() => project.buildTests("esm"));
                     }
-                    this.tsContext = context;
                 }
-
-                const refreshCallback = progress.refresh.bind(progress);
-
-                if (project.pkg.isLibrary) {
-                    const apiSha = createHash("sha1");
-
-                    // Our API SHA changes if that of any dependency changes
-                    if (node) {
-                        for (const dep of node.dependencies) {
-                            if (dep.info.apiSha !== undefined) {
-                                apiSha.update(dep.info.apiSha);
-                            }
+                if (targets.has(Target.cjs)) {
+                    // CJS .d.ts copy and CJS esbuild both create dist/cjs/ subdirectories, so they must be sequential
+                    // to avoid mkdir races
+                    this.#work.push(async () => {
+                        if (project.pkg.isLibrary) {
+                            await copyDeclarationsToCjs(project.pkg);
                         }
-                    }
-
-                    await progress.run(`Generate ${progress.emphasize("type declarations")}`, async () => {
-                        await context.build(project.pkg, "src", refreshCallback);
-                        await project.hashDeclarations(apiSha);
+                        await project.buildSource("cjs");
                     });
-
-                    // Work-in-progress alternative doc generation implementation
-                    // await progress.run(`Extract ${progress.emphasize("api docs")}`, () =>
-                    //     emitApiDoc(project.pkg, program, progress),
-                    // );
-
-                    info.apiSha = apiSha.digest("hex");
-                } else {
-                    await progress.run(`Validate ${progress.emphasize("types")}`, () =>
-                        context.build(project.pkg, "src", refreshCallback, false),
-                    );
-                }
-                if (project.pkg.hasTests) {
-                    await progress.run(`Validate ${progress.emphasize("test types")}`, () =>
-                        context.build(project.pkg, "test", refreshCallback),
-                    );
-                }
-            } catch (e) {
-                if (e instanceof BuildError) {
-                    if (e.diagnostics) {
-                        process.stderr.write(`${e.diagnostics}\n`);
+                    if (project.pkg.hasTests) {
+                        this.#work.push(() => project.buildTests("cjs"));
                     }
-                    progress.failure("Terminating due to type errors");
-                    process.exit(1);
                 }
-                throw e;
-            }
-        }
+            } else {
+                try {
+                    // Obtain or initialize typescript solution builder
+                    let context = this.tsContext;
+                    if (context === undefined) {
+                        if (this.tsgo) {
+                            context = createTsgoContext(project.pkg.workspace);
+                        } else {
+                            context = await createTypescriptContext(project.pkg.workspace, graph);
+                        }
+                        this.tsContext = context;
+                    }
 
-        const formats = Array<"esm" | "cjs">();
-        if (targets.has(Target.esm)) {
-            formats.push("esm");
-        }
-        if (targets.has(Target.cjs)) {
-            formats.push("cjs");
-        }
+                    const refreshCallback = progress.refresh.bind(progress);
 
-        if (formats.length) {
-            const groups = [project.pkg.isLibrary ? "library" : "app"];
-            if (project.pkg.hasTests) {
-                groups.push("tests");
-            }
-
-            const formatDesc = formats.map(progress.emphasize).join("+");
-            const groupDesc = groups.map(progress.emphasize).join("+");
-
-            await progress.run(`Transpile ${groupDesc} to ${formatDesc}`, async () => {
-                for (const format of formats) {
-                    await this.#transpile(project, format);
+                    if (project.pkg.isLibrary) {
+                        await progress.run(`Generate ${progress.emphasize("type declarations")}`, () =>
+                            context.build(project.pkg, "src", refreshCallback),
+                        );
+                    } else {
+                        await progress.run(`Validate ${progress.emphasize("types")}`, () =>
+                            context.build(project.pkg, "src", refreshCallback, false),
+                        );
+                    }
+                    if (project.pkg.hasTests) {
+                        await progress.run(`Validate ${progress.emphasize("test types")}`, () =>
+                            context.build(project.pkg, "test", refreshCallback),
+                        );
+                    }
+                } catch (e) {
+                    if (e instanceof BuildError) {
+                        if (e.diagnostics) {
+                            process.stderr.write(`${e.diagnostics}\n`);
+                        }
+                        progress.failure("Terminating due to type errors");
+                        process.exit(1);
+                    }
+                    throw e;
                 }
-            });
+
+                const formats = Array<"esm" | "cjs">();
+                if (targets.has(Target.esm)) {
+                    formats.push("esm");
+                }
+                if (targets.has(Target.cjs)) {
+                    formats.push("cjs");
+                }
+
+                if (formats.length) {
+                    const groups = [project.pkg.isLibrary ? "library" : "app"];
+                    if (project.pkg.hasTests) {
+                        groups.push("tests");
+                    }
+
+                    const formatDesc = formats.map(progress.emphasize).join("+");
+                    const groupDesc = groups.map(progress.emphasize).join("+");
+
+                    await progress.run(`Transpile ${groupDesc} to ${formatDesc}`, async () => {
+                        for (const format of formats) {
+                            await this.#transpile(project, format);
+                        }
+                    });
+                }
+            }
         }
 
         await config?.after?.({ project });
@@ -237,4 +267,24 @@ export class ProjectBuilder {
 
         return targets;
     }
+}
+
+const PARALLEL_LIMIT = 10;
+
+/**
+ * Run an array of async tasks with a concurrency limit.
+ */
+async function parallel<T>(tasks: Array<() => Promise<T>>): Promise<T[]> {
+    const results = Array<T>(tasks.length);
+    let next = 0;
+
+    async function worker() {
+        while (next < tasks.length) {
+            const i = next++;
+            results[i] = await tasks[i]();
+        }
+    }
+
+    await Promise.all(Array.from({ length: Math.min(PARALLEL_LIMIT, tasks.length) }, worker));
+    return results;
 }
