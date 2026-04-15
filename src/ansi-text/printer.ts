@@ -6,6 +6,7 @@
 
 import { Consumer } from "./consumer.js";
 import { Producer } from "./producer.js";
+import { TextWriter } from "./text-writer.js";
 import { Truncator } from "./truncator.js";
 import { Wrapper } from "./wrapper.js";
 
@@ -22,7 +23,20 @@ export interface Printer extends Consumer {
     writeTruncatedLine(...text: Producer.Sequence): void;
 }
 
-export function Printer(target: Consumer, options?: Printer.Options) {
+export function Printer(out: Printer.Output, options?: Printer.Options): Printer;
+export function Printer(target: Consumer, options?: Printer.Options): Printer;
+
+export function Printer(targetOrOut: Consumer | Printer.Output, options?: Printer.Options) {
+    let target: Consumer;
+    if (typeof targetOrOut === "function") {
+        const writer = new TextWriter(text => targetOrOut(text), { terminalWidth: options?.terminalWidth });
+        if (options?.styleEnabled !== undefined) {
+            writer.state.styleEnabled = options.styleEnabled;
+        }
+        target = writer;
+    } else {
+        target = targetOrOut;
+    }
     target = options?.wrap ? new Wrapper(target, options.wrap) : target;
     let truncator: undefined | Truncator;
 
@@ -101,6 +115,11 @@ export function Printer(target: Consumer, options?: Printer.Options) {
 }
 
 export namespace Printer {
+    /**
+     * A simple text output function.
+     */
+    export type Output = (text: string) => void;
+
     export interface Options extends Consumer.Options {
         wrap?: Wrapper.Options;
     }
