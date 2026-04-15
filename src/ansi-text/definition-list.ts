@@ -38,23 +38,26 @@ export function DefinitionList(entries: DefinitionList.Entry[]): Printer.Rendera
             for (const entry of entries) {
                 const nameWidth = widthOf(entry.name);
 
-                // Render name
-                printer.write("".padEnd(indent));
-                if (Printer.isRenderable(entry.name)) {
-                    entry.name.renderTo(printer);
-                } else {
-                    printer.write(entry.name);
+                // Name column — wrapping disabled so padding spaces aren't collapsed
+                {
+                    using _nowrap = printer.state({ wrap: false });
+
+                    printer.write("".padEnd(indent));
+                    if (Printer.isRenderable(entry.name)) {
+                        entry.name.renderTo(printer);
+                    } else {
+                        printer.write(entry.name);
+                    }
+
+                    if (nameWidth > maxNameWidth) {
+                        printer.write("\n", "".padEnd(nameCol));
+                    } else {
+                        printer.write("".padEnd(maxNameWidth - nameWidth + gutter));
+                    }
                 }
 
-                // If name overflows, put description on next line
-                if (nameWidth > maxNameWidth) {
-                    printer.write("\n", "".padEnd(nameCol));
-                } else {
-                    printer.write("".padEnd(maxNameWidth - nameWidth + gutter));
-                }
-
-                // Render description (dim)
-                using _cx = printer.state({ style: DIM });
+                // Description — dim, continuation lines indented to description column
+                using _cx = printer.state({ style: DIM, wrapIndent: nameCol });
                 if (Printer.isRenderable(entry.description)) {
                     entry.description.renderTo(printer);
                 } else if (entry.description) {

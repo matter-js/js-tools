@@ -33,6 +33,15 @@ export namespace Consumer {
         terminalWidth?: number;
         styleEnabled?: boolean;
         buffer?: boolean;
+        /**
+         * Set to `false` to disable word wrapping.
+         */
+        wrap?: boolean;
+
+        /**
+         * Column width for continuation indent when word wrapping.  Wrapped lines are padded to this column.
+         */
+        wrapIndent?: number;
     }
 
     export interface State extends Options {

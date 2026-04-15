@@ -55,7 +55,7 @@ export class Wrapper implements Consumer {
     }
 
     write(...text: Producer.Sequence) {
-        if (this.#target.state.terminalWidth === undefined) {
+        if (this.#target.state.terminalWidth === undefined || this.#target.state.wrap === false) {
             this.#target.write(...text);
             return;
         }
@@ -179,7 +179,7 @@ export class Wrapper implements Consumer {
         }
 
         // Least ideal case - the first- or tertiary- prefix fills up the line by itself.  Give up on wrapping
-        const wrapPrefixWidth = (this.#wrapPrefix?.width ?? 0) + (this.#indent?.width ?? 0);
+        const wrapPrefixWidth = this.#effectiveWrapPrefixWidth;
         const availableWrappedWidth = this.#target.state.availableWidth! - wrapPrefixWidth;
         if ((outputState === "newline" && remainingWidth <= 0) || availableWrappedWidth < 0) {
             this.#target.write(...output.tokens);
@@ -205,6 +205,14 @@ export class Wrapper implements Consumer {
         }
     }
 
+    get #effectiveWrapPrefixWidth() {
+        const wrapIndent = this.#target.state.wrapIndent;
+        if (wrapIndent !== undefined) {
+            return wrapIndent;
+        }
+        return (this.#wrapPrefix?.width ?? 0) + (this.#indent?.width ?? 0);
+    }
+
     #emitPrefix(extra?: ContiguousOutputSegment) {
         if (this.#indent !== undefined) {
             this.#target.write(...this.#indent.tokens);
@@ -221,7 +229,14 @@ export class Wrapper implements Consumer {
             this.#target.write({ kind: "style", style: Style.None });
         }
         this.#target.write(NEWLINE);
-        this.#emitPrefix(this.#wrapPrefix);
+
+        const wrapIndent = this.#target.state.wrapIndent;
+        if (wrapIndent !== undefined) {
+            this.#target.write({ kind: "breaking", str: "".padEnd(wrapIndent), width: wrapIndent });
+        } else {
+            this.#emitPrefix(this.#wrapPrefix);
+        }
+
         if (style) {
             this.#target.write({ kind: "style", style });
         }

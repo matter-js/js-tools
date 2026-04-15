@@ -49,7 +49,13 @@ export class TextWriter implements Consumer {
 
             const revertTo = { ...self.state, options } as Consumer.Options;
 
-            const { linePrefix, style, buffer } = options;
+            const { linePrefix, style, buffer, wrap, wrapIndent } = options;
+            if (wrap !== undefined) {
+                self.#state.wrap = wrap;
+            }
+            if (wrapIndent !== undefined) {
+                self.#state.wrapIndent = wrapIndent;
+            }
             if (linePrefix) {
                 if (self.#linePrefix) {
                     self.#linePrefix.push(linePrefix);
@@ -210,6 +216,18 @@ export class TextWriter implements Consumer {
                     }
                 },
 
+                enumerable: true,
+            },
+
+            wrap: {
+                value: undefined,
+                writable: true,
+                enumerable: true,
+            },
+
+            wrapIndent: {
+                value: undefined,
+                writable: true,
                 enumerable: true,
             },
 
