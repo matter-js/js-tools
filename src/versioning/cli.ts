@@ -18,7 +18,7 @@ interface Args {
 }
 
 export async function main(argv = process.argv) {
-    const program = commander("matter-version", "Manipulate monorepo package versions.")
+    const program = commander("nacho-version", "Manipulate package versions.")
         .argument("[version]")
         .option("-p, --prefix <prefix>", "specify monorepo directory")
         .option("-s, --set", "sets the release version")

@@ -280,13 +280,12 @@ export class Graph {
 
     static async #loadNodes(workspace: Package) {
         const workspaces = workspace.json.workspaces;
-        if (workspaces === undefined) {
-            throw new Error(`No workspaces defined in ${workspace.name}`);
-        }
+        // Single-package mode: when no workspaces are declared, treat the workspace package itself as the sole node
+        const paths = workspaces === undefined || workspaces.length === 0 ? ["."] : [...workspaces];
 
         const nodeMap = {} as Record<string, Graph.Node>;
         const allDeps = {} as Record<string, string[]>;
-        for (const path of workspaces.values()) {
+        for (const path of paths) {
             const pkg = new Package({ path: workspace.resolve(path) });
             allDeps[pkg.name] = pkg.dependencies;
             nodeMap[pkg.name] = {
@@ -344,5 +343,5 @@ function formatTime(time: number | string) {
 }
 
 function formatDep(node: Graph.Node) {
-    return node.pkg.name.replace(/^@matter\//, "");
+    return node.pkg.name.replace(/^@[^/]+\//, "");
 }

@@ -198,7 +198,21 @@ export class Package {
 
     static workspaceFor(cwd: string) {
         if (!workspace) {
-            workspace = find(cwd, pkg => Array.isArray(pkg.json.workspaces));
+            const nearest = new Package({ path: cwd });
+            let pkg = nearest;
+            while (!Array.isArray(pkg.json.workspaces)) {
+                try {
+                    pkg = new Package({ path: dirname(pkg.path) });
+                } catch (e) {
+                    if (e instanceof JsonNotFoundError) {
+                        // No enclosing workspace — treat the nearest package as a standalone "workspace of one"
+                        workspace = nearest;
+                        return workspace;
+                    }
+                    throw e;
+                }
+            }
+            workspace = pkg;
         }
         return workspace;
     }
@@ -389,7 +403,7 @@ export type PackageJson = {
     name?: string;
     version?: string;
     imports?: Record<string, string>;
-    matter?: {
+    tooling?: {
         test?: boolean;
     };
     scripts?: Record<string, string>;
@@ -408,13 +422,6 @@ let workingDir = ".";
 let workspace: Package | undefined;
 let tools: Package | undefined;
 
-function find(startDir: string, selector: (pkg: Package) => boolean): Package {
-    let pkg = new Package({ path: startDir });
-    while (!selector(pkg)) {
-        pkg = new Package({ path: dirname(pkg.path) });
-    }
-    return pkg;
-}
 
 function selectFormats(json: Record<string, unknown>) {
     let esm: boolean, cjs: boolean;

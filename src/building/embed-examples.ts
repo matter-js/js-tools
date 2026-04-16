@@ -13,7 +13,7 @@ const FENCED_BLOCK_RE = /(```\w+\n)(\/\/ .+\n)[\s\S]*?(```)/g;
 export function main() {
     const patterns = process.argv.slice(2);
     if (!patterns.length) {
-        console.error("Usage: matter-embed-examples <glob...>");
+        console.error("Usage: nacho-embed-examples <glob...>");
         process.exit(1);
     }
 

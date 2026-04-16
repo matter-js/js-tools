@@ -34,7 +34,7 @@ export async function main(argv = process.argv) {
     const targets = Array<Target>();
     let mode = Mode.BuildProject;
 
-    const program = commander("matter-build", "Builds packages adhering to matter.js standards.")
+    const program = commander("nacho-build", "Builds TypeScript packages and monorepos.")
         .option("-p, --prefix <path>", "specify build directory", ".")
         .option("-c, --clean", "clean before build", false)
         .option("-d, --dependencies", "build dependencies", false)

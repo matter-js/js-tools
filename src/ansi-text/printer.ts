@@ -37,7 +37,7 @@ export function Printer(targetOrOut: Consumer | Printer.Output, options?: Printe
     } else {
         target = targetOrOut;
     }
-    target = options?.wrap ? new Wrapper(target, options.wrap) : target;
+    target = options?.wrap ? new Wrapper(target, options.wrap === true ? {} : options.wrap) : target;
     let truncator: undefined | Truncator;
 
     const printer = function Printer(...text: Printer.Sequence) {
@@ -120,8 +120,8 @@ export namespace Printer {
      */
     export type Output = (text: string) => void;
 
-    export interface Options extends Consumer.Options {
-        wrap?: Wrapper.Options;
+    export interface Options extends Omit<Consumer.Options, "wrap"> {
+        wrap?: boolean | Wrapper.Options;
     }
 
     /**

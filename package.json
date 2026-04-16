@@ -1,19 +1,21 @@
 {
-    "name": "@matter/tools",
+    "name": "@nacho-iot/tools",
     "version": "0.0.0-git",
-    "description": "Matter.js tooling",
+    "description": "Build, run, and versioning tooling for TypeScript projects and monorepos",
     "type": "module",
     "scripts": {
         "clean": "node bin/build.js clean",
         "build": "node bin/build.js",
         "build-clean": "node bin/build.js --clean",
-        "version": "node bin/version.js"
+        "version": "node bin/version.js",
+        "prepare": "node bin/build.js --clean"
     },
     "bin": {
-        "matter-build": "bin/build.js",
-        "matter-embed-examples": "bin/embed-examples.js",
-        "matter-run": "bin/run.js",
-        "matter-version": "bin/version.js"
+        "nacho-build": "bin/build.js",
+        "nacho-embed-examples": "bin/embed-examples.js",
+        "nacho-run": "bin/run.js",
+        "nacho-version": "bin/version.js",
+        "nacho-relock": "bin/relock.js"
     },
     "exports": {
         ".": {
@@ -50,17 +52,14 @@
     "types": "dist/esm/index.d.ts",
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/matter-js/matter.js.git"
+        "url": "git+https://github.com/nacho-iot/js-tools.git"
     },
-    "author": "matter.js authors",
-    "contributors": [
-        "Greg Lauckhart <greg@lauckhart.com>"
-    ],
+    "author": "Greg Lauckhart <greg@lauckhart.com>",
     "license": "Apache-2.0",
     "bugs": {
-        "url": "https://github.com/matter-js/matter.js/issues"
+        "url": "https://github.com/nacho-iot/js-tools/issues"
     },
-    "homepage": "https://github.com/matter-js/matter.js#readme",
+    "homepage": "https://github.com/nacho-iot/js-tools#readme",
     "dependencies": {
         "@microsoft/tsdoc": "^0.16.0",
         "@typescript/native-preview": "^7.0.0-dev.20260413.1",
@@ -80,6 +79,11 @@
     "devDependencies": {
         "@types/madge": "^5.0.3",
         "@types/node": "^25.6.0"
+    },
+    "overrides": {
+        "detective-typescript": {
+            "typescript": "$typescript"
+        }
     },
     "publishConfig": {
         "access": "public"

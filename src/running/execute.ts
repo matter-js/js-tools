@@ -56,16 +56,11 @@ export async function executeNode(script: string, argv: string[], nodeArgv = Arr
     }
 
     argv = [...defaultNodeArgv, ...nodeArgv, script, ...argv];
-    if (process.env.MATTER_RUN_ECHO) {
+    if (process.env.NACHO_RUN_ECHO) {
         const command = colors.whiteBright(`node ${argv.join(" ")}`);
-        process.stdout.write(`${colors.greenBright("Matter execute:")} ${command}\n`);
+        process.stdout.write(`${colors.greenBright("Execute:")} ${command}\n`);
     }
     const env = {} as NodeJS.ProcessEnv;
-
-    // Hmm this is a little much as a default
-    // if (process.env.MATTER_LOG_STACK_LIMIT === undefined) {
-    //     env.MATTER_LOG_STACK_LIMIT = "100";
-    // }
 
     return execute("node", argv, env);
 }
