@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2022-2026 Matter.js Authors
+ * Copyright 2022-2026 Greg Lauckhart <greg@lauckhart.com>
  * SPDX-License-Identifier: Apache-2.0
  */
 
