@@ -6,11 +6,9 @@ Supports both flat single-package repos and multi-package npm workspaces.
 
 ## CLI commands
 
-* `nacho-build` -- build TypeScript packages (type checking, ESM/CJS transpilation)
+* `nacho-build` -- build TypeScript packages (type checking, ESM/CJS transpilation); includes subcommands for
+  workspace maintenance (`configure`, `relock`, `version`, `cycles`, `docs`, etc.)
 * `nacho-run` -- run a TypeScript script with automatic transpilation and source maps
-* `nacho-version` -- manage package versions
-* `nacho-embed-examples` -- embed code examples into documentation
-* `nacho-relock` -- regenerate lock files
 
 ## License
 

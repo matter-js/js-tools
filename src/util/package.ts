@@ -64,7 +64,11 @@ export class Package {
             }
         }
 
-        this.isLibrary = !!(this.json.main || this.json.module || this.json.exports);
+        // A library publishes type declarations for other packages to consume.  Default signal: `exports` is present.
+        // An explicit `nacho.kind` in package.json overrides (useful when a package declares exports but is actually
+        // an app, or vice versa).
+        const kind = this.json.nacho?.kind;
+        this.isLibrary = kind === "lib" ? true : kind === "app" ? false : !!this.json.exports;
 
         this.hasConfig = this.hasFile(this.resolve(CONFIG_PATH));
     }
@@ -190,6 +194,8 @@ export class Package {
 
     static set workingDir(wd: string) {
         workingDir = wd;
+        workspace = undefined;
+        target = undefined;
     }
 
     static get workspace() {
@@ -217,6 +223,16 @@ export class Package {
         return workspace;
     }
 
+    /**
+     * The package for the current working directory.  Resets when {@link workingDir} changes.
+     */
+    static get target() {
+        if (!target) {
+            target = new Package({ path: workingDir });
+        }
+        return target;
+    }
+
     static get tools() {
         if (!tools) {
             tools = new Package({ path: toolsPath });
@@ -226,6 +242,13 @@ export class Package {
 
     static findExport(name: string, type: "cjs" | "esm" = "esm") {
         return this.workspace.resolveImport(name, type);
+    }
+
+    /**
+     * Find an installed package by name, resolving from the {@link target} package.
+     */
+    static findPackage(name: string) {
+        return this.target.findPackage(name);
     }
 
     resolveExport(name: string, type: "cjs" | "esm" = "esm") {
@@ -308,7 +331,7 @@ export class Package {
     async readJson(path: string) {
         const text = await this.readFile(path);
         try {
-            return JSON.parse(text);
+            return JSON.parse(stripJsonComments(text));
         } catch (e) {
             if (!(e instanceof Error)) {
                 e = new Error(`${e}`);
@@ -403,7 +426,8 @@ export type PackageJson = {
     name?: string;
     version?: string;
     imports?: Record<string, string>;
-    tooling?: {
+    nacho?: {
+        kind?: "app" | "lib";
         test?: boolean;
     };
     scripts?: Record<string, string>;
@@ -420,8 +444,18 @@ export type PackageJson = {
 
 let workingDir = ".";
 let workspace: Package | undefined;
+let target: Package | undefined;
 let tools: Package | undefined;
 
+/**
+ * Strip `//` line comments and `/* ... *\/` block comments from JSONC, leaving comment-like sequences inside string
+ * literals alone.
+ */
+function stripJsonComments(text: string): string {
+    return text.replace(/"(?:[^"\\]|\\.)*"|\/\/[^\n]*|\/\*[\s\S]*?\*\//g, match =>
+        match.startsWith('"') ? match : "",
+    );
+}
 
 function selectFormats(json: Record<string, unknown>) {
     let esm: boolean, cjs: boolean;

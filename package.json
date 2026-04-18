@@ -7,15 +7,13 @@
         "clean": "node bin/build.js clean",
         "build": "node bin/build.js",
         "build-clean": "node bin/build.js --clean",
-        "version": "node bin/version.js",
+        "version": "node bin/build.js version",
+        "relock": "node bin/build.js relock && npm install",
         "prepare": "node bin/build.js --clean"
     },
     "bin": {
         "nacho-build": "bin/build.js",
-        "nacho-embed-examples": "bin/embed-examples.js",
-        "nacho-run": "bin/run.js",
-        "nacho-version": "bin/version.js",
-        "nacho-relock": "bin/relock.js"
+        "nacho-run": "bin/run.js"
     },
     "exports": {
         ".": {

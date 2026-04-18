@@ -4,12 +4,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { commander } from "../util/commander.js";
 import { Package } from "../util/package.js";
 import { Progress } from "../util/progress.js";
 import { Versioner } from "./versioner.js";
 
-interface Args {
+export interface VersionArgs {
     version?: string;
     prefix?: string;
     set?: boolean;
@@ -17,21 +16,9 @@ interface Args {
     tag?: boolean;
 }
 
-export async function main(argv = process.argv) {
-    const program = commander("nacho-version", "Manipulate package versions.")
-        .argument("[version]")
-        .option("-p, --prefix <prefix>", "specify monorepo directory")
-        .option("-s, --set", "sets the release version")
-        .option("-a, --apply", "sets package versions to the release version")
-        .option("-t, --tag", "adds git tag for release version")
-        .parse(argv);
-
-    const args = program.opts<Args>();
-    args.version = program.args[0];
-
-    const version = args.version;
+export async function manageVersion(args: VersionArgs) {
     const pkg = new Package({ path: args.prefix });
-    const versioner = new Versioner(pkg, version);
+    const versioner = new Versioner(pkg, args.version);
 
     const progress = new Progress();
 
