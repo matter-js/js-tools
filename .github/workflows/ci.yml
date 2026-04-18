@@ -10,7 +10,7 @@ jobs:
   build-and-smoke:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Build and smoke test in Docker
         run: |
@@ -18,7 +18,7 @@ jobs:
           mkdir -p out
           docker run --rm -v "$PWD/out:/work/out" nacho-tools-ci
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: tarball
           path: out/*.tgz
@@ -33,12 +33,12 @@ jobs:
       # Required for npm package provenance (OIDC token).
       id-token: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: tarball
           path: out
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
           registry-url: https://registry.npmjs.org
