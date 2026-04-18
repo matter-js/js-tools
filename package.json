@@ -15,6 +15,17 @@
         "nacho-build": "bin/build.js",
         "nacho-run": "bin/run.js"
     },
+    "engines": {
+        "node": ">=20"
+    },
+    "files": [
+        "bin",
+        "dist",
+        "src",
+        "tsc",
+        "README.md",
+        "LICENSE"
+    ],
     "exports": {
         ".": {
             "import": {
@@ -43,7 +54,8 @@
             "import": {
                 "default": "./src/util/bootstrap.mjs"
             }
-        }
+        },
+        "./tsc/*": "./tsc/*"
     },
     "main": "dist/cjs/index.js",
     "module": "dist/esm/index.js",
