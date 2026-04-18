@@ -67,7 +67,7 @@ function referencesChanged(originalReferences: unknown, newReferences: unknown) 
     return JSON.stringify(originalReferences) !== JSON.stringify(newReferences);
 }
 
-export async function syncPackageTsconfigs(graph: Graph, node: Graph.Node, force = false) {
+export async function syncPackageTsconfigs(_graph: Graph, node: Graph.Node, force = false) {
     const workspace = node.pkg.workspace;
     // Libraries must emit type declarations for consumers.  Packages with tests must also emit because the test
     // subproject references src via tsconfig project references.
@@ -86,7 +86,7 @@ export async function syncPackageTsconfigs(graph: Graph, node: Graph.Node, force
         "tsconfig.test.json",
         force,
         node.pkg.resolve("src"),
-        graph.get("@nacho-iot/tools").pkg.resolve("src"),
+        Package.tools.resolve("src"),
     );
 }
 
