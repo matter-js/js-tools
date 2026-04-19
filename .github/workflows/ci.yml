@@ -43,7 +43,9 @@ jobs:
           node-version: 22
           registry-url: https://registry.npmjs.org
 
+      # Runner's bundled npm is older than the 11.5.1+ required for OIDC-based
+      # trusted publishing; upgrade before calling publish.
+      - run: npm install -g npm@latest
+
       - name: Publish to npm with provenance
         run: npm publish --provenance --access public ./out/*.tgz
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
