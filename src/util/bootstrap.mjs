@@ -15,7 +15,7 @@ import { dirname, resolve } from "path";
 import { fileURLToPath } from "url";
 
 function fatal(why, error) {
-    console.error(`Cannot bootstrap @nacho-iot/tools because ${why}.`);
+    console.error(`Cannot bootstrap @nacho-iot/js-tools because ${why}.`);
     if (error) {
         console.error(error);
     }

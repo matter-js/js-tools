@@ -1,6 +1,6 @@
 // This configuration is a standard baseline for all libraries.
 //
-// Copied from @nacho-iot/tools.  Edits are preserved; `nacho-build configure` replaces with the latest template.
+// Copied from @nacho-iot/js-tools.  Edits are preserved; `nacho-build configure` replaces with the latest template.
 {
     "extends": "./tsconfig.base.json",
     "compilerOptions": {

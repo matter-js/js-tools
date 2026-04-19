@@ -9,7 +9,7 @@ cd /work
 
 TOOLS_TARBALL=$(mktemp -d)/nacho-tools.tgz
 npm pack --pack-destination "$(dirname "$TOOLS_TARBALL")" >/dev/null
-mv "$(dirname "$TOOLS_TARBALL")"/nacho-iot-tools-*.tgz "$TOOLS_TARBALL"
+mv "$(dirname "$TOOLS_TARBALL")"/nacho-iot-js-tools-*.tgz "$TOOLS_TARBALL"
 
 for fixture in tests/*/; do
     name=$(basename "$fixture")

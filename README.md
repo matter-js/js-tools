@@ -1,4 +1,4 @@
-# @nacho-iot/tools
+# @nacho-iot/js-tools
 
 Build, run, and versioning tooling for TypeScript projects and monorepos, extracted from [matter.js](https://github.com/matter-js/matter.js).
 
