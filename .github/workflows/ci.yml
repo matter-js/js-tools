@@ -38,14 +38,13 @@ jobs:
           name: tarball
           path: out
 
+      # Node 24 ships with npm 11.x, which is required for OIDC-based trusted
+      # publishing.  (The node version used by the build lives in the Dockerfile
+      # and is independent of this.)
       - uses: actions/setup-node@v6
         with:
-          node-version: 22
+          node-version: 24
           registry-url: https://registry.npmjs.org
-
-      # Runner's bundled npm is older than the 11.5.1+ required for OIDC-based
-      # trusted publishing; upgrade before calling publish.
-      - run: npm install -g npm@latest
 
       - name: Publish to npm with provenance
         run: npm publish --provenance --access public ./out/*.tgz
