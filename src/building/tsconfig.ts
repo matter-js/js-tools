@@ -86,7 +86,6 @@ export async function syncPackageTsconfigs(_graph: Graph, node: Graph.Node, forc
         "tsconfig.test.json",
         force,
         node.pkg.resolve("src"),
-        Package.tools.resolve("src"),
     );
 }
 

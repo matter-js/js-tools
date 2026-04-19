@@ -61,7 +61,7 @@ export class ProjectBuilder {
         this.graph = options.graph;
         this.unconditional =
             options.clean || (options.targets !== undefined && options.targets?.indexOf(Target.clean) !== -1);
-        this.tsgo = options.tsgo || (!!process.env.NACHO_TSGO && process.env.NACHO_TSGO !== "0");
+        this.tsgo = options.tsgo ?? process.env.NACHO_TSGO !== "0";
     }
 
     get hasClean() {

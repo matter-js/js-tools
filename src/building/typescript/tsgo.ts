@@ -12,8 +12,8 @@ import { Package } from "../../util/package.js";
 import { BuildError } from "../error.js";
 import { TypescriptContext } from "./context.js";
 
-function tsgoBin(workspace: Package) {
-    return join(workspace.resolve("node_modules", ".bin", "tsgo"));
+function tsgoBin(_workspace: Package) {
+    return Package.tools.findPackage("@typescript/native-preview").resolve("bin/tsgo.js");
 }
 
 export function createTsgoContext(workspace: Package): TypescriptContext {

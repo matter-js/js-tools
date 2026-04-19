@@ -43,7 +43,7 @@ export async function main(argv = process.argv) {
         .option("-p, --prefix <path>", "specify build directory", ".")
         .option("-c, --clean", "clean before build", false)
         .option("-d, --dependencies", "build dependencies", false)
-        .option("--tsgo", "use experimental TS 7 compiler", false);
+        .option("--tsc", "use tsc instead of tsgo for type checking");
 
     program
         .command("build")
@@ -143,7 +143,8 @@ export async function main(argv = process.argv) {
     }
 
     function builder(graph?: Graph) {
-        return new ProjectBuilder({ ...args, targets: [...targets], graph });
+        const { tsc, ...rest } = args as Args & { tsc?: boolean };
+        return new ProjectBuilder({ ...rest, tsgo: tsc ? false : undefined, targets: [...targets], graph });
     }
 
     switch (mode as Mode) {
