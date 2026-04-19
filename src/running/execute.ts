@@ -9,21 +9,29 @@ import { platform } from "node:os";
 
 import colors from "ansi-colors";
 
-export async function execute(bin: string, argv: string[], env?: typeof process.env) {
+export interface ExecuteOptions {
+    env?: typeof process.env;
+    cwd?: string;
+}
+
+export async function execute(bin: string, argv: string[], { env, cwd }: ExecuteOptions = {}) {
     return new Promise<number>((resolve, reject) => {
         let finished = false;
 
-        const options: SpawnOptions = {
+        const spawnOptions: SpawnOptions = {
             stdio: "inherit",
         };
         if (platform() === "win32") {
-            options.shell = true;
+            spawnOptions.shell = true;
         }
         if (env !== undefined) {
-            options.env = { ...process.env, ...env };
+            spawnOptions.env = { ...process.env, ...env };
+        }
+        if (cwd !== undefined) {
+            spawnOptions.cwd = cwd;
         }
 
-        const proc = spawn(bin, argv, options);
+        const proc = spawn(bin, argv, spawnOptions);
 
         // Proxy SIGUSR2 to the child process
         process.on("SIGUSR2", () => {
@@ -60,7 +68,5 @@ export async function executeNode(script: string, argv: string[], nodeArgv = Arr
         const command = colors.whiteBright(`node ${argv.join(" ")}`);
         process.stdout.write(`${colors.greenBright("Execute:")} ${command}\n`);
     }
-    const env = {} as NodeJS.ProcessEnv;
-
-    return execute("node", argv, env);
+    return execute("node", argv, { env: {} });
 }

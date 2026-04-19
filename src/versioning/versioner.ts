@@ -62,8 +62,17 @@ export class Versioner {
             } else {
                 progress?.success(`${what} (no change)`);
             }
-            await cp(this.#pkg.resolve("LICENSE"), node.pkg.resolve("LICENSE"));
+            const srcLicense = this.#pkg.resolve("LICENSE");
+            const destLicense = node.pkg.resolve("LICENSE");
+            if (srcLicense !== destLicense) {
+                await cp(srcLicense, destLicense);
+            }
         }
+
+        const what = `Sync ${ansi.bold("package-lock.json")}`;
+        progress?.update(what);
+        await execute("npm", ["install", "--package-lock-only", "--silent"], { cwd: this.#pkg.path });
+        progress?.success(what);
     }
 
     async tag() {
