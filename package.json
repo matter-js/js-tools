@@ -1,6 +1,6 @@
 {
     "name": "@nacho-iot/js-tools",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "description": "Build, run, and versioning tooling for TypeScript projects and monorepos",
     "type": "module",
     "scripts": {
