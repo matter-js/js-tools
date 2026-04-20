@@ -20,10 +20,10 @@ export function createTsgoContext(workspace: Package): TypescriptContext {
     const bin = tsgoBin(workspace);
     return {
         async build(pkg, path, _refreshCallback, _emit) {
-            const args = ["--project", pkg.resolve(join(path, "tsconfig.json"))];
+            const args = [bin, "--project", pkg.resolve(join(path, "tsconfig.json"))];
 
             await new Promise<void>((resolve, reject) => {
-                const tsgo = spawn(bin, args, { stdio: "inherit" });
+                const tsgo = spawn(process.execPath, args, { stdio: "inherit" });
 
                 tsgo.on("exit", (code, signal) => {
                     switch (code) {
@@ -94,13 +94,13 @@ export interface TsgoResult {
  */
 export async function tsgoSolutionBuild(workspace: Package, tsconfigPath: string): Promise<TsgoResult> {
     const bin = tsgoBin(workspace);
-    const args = ["-b", tsconfigPath];
+    const args = [bin, "-b", tsconfigPath];
     const workspacePath = workspace.path;
 
     // tsgo sends diagnostics to stdout
     const { code, stdout } = await new Promise<{ code: number; stdout: string }>((resolve, reject) => {
         const chunks = Array<Buffer>();
-        const tsgo = spawn(bin, args, { stdio: ["ignore", "pipe", "inherit"] });
+        const tsgo = spawn(process.execPath, args, { stdio: ["ignore", "pipe", "inherit"] });
 
         tsgo.stdout.on("data", (chunk: Buffer) => chunks.push(chunk));
 
