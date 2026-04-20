@@ -5,7 +5,7 @@ set -euo pipefail
 # isolated temp dir, installed against the source-built package, then its
 # verify.sh is run.  Failure of any fixture aborts the whole run.
 
-cd /work
+cd "$(dirname "$0")/.."
 
 TOOLS_TARBALL=$(mktemp -d)/nacho-tools.tgz
 npm pack --pack-destination "$(dirname "$TOOLS_TARBALL")" >/dev/null
