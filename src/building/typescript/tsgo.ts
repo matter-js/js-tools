@@ -84,6 +84,12 @@ export interface TsgoResult {
     outputsSkipped: boolean;
 
     errorsByPackage: Map<string, string>;
+
+    /**
+     * Raw captured stdout — used to surface diagnostics that don't match the (line,col) parser (TS5xxx config errors,
+     * TS6xxx command-line errors).
+     */
+    rawOutput: string;
 }
 
 /**
@@ -153,5 +159,5 @@ export async function tsgoSolutionBuild(workspace: Package, tsconfigPath: string
         }
     }
 
-    return { ok: code === 0, outputsSkipped: code === 2, errorsByPackage };
+    return { ok: code === 0, outputsSkipped: code === 2, errorsByPackage, rawOutput: stdout };
 }

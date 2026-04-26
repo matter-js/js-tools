@@ -10,7 +10,7 @@ import { Progress } from "../util/progress.js";
 import { InternalBuildError } from "./error.js";
 import { ProjectBuilder, Target } from "./project-builder.js";
 import { BUILD_INFO_LOCATION, BuildInformation, Project } from "./project.js";
-import { tsgoSolutionBuild } from "./typescript/tsgo.js";
+import { TsgoResult, tsgoSolutionBuild } from "./typescript/tsgo.js";
 
 /**
  * Graph of dependencies for workspace packages.
@@ -180,7 +180,28 @@ export class Graph {
         await this.#prebuild(builder, progress);
 
         // Phase 1 — Batched type check via tsgo -b
-        const result = await progress.run("Type check", () => tsgoSolutionBuild(workspace, tsconfigPath));
+        progress.update("Type check");
+        let result: TsgoResult;
+        try {
+            result = await tsgoSolutionBuild(workspace, tsconfigPath);
+        } catch (e) {
+            progress.failure("Type check");
+            throw e;
+        }
+
+        if (result.ok) {
+            progress.success("Type check");
+        } else {
+            progress.failure("Type check");
+
+            if (result.errorsByPackage.size > 0) {
+                for (const errors of result.errorsByPackage.values()) {
+                    process.stderr.write(`${errors}\n`);
+                }
+            } else if (result.rawOutput) {
+                process.stderr.write(result.rawOutput);
+            }
+        }
 
         if (result.outputsSkipped) {
             // Exit code 2 — outputs were skipped.  Map errors to packages, propagate to dependents, and remove from
@@ -188,10 +209,8 @@ export class Graph {
             const failed = new Set<Graph.Node>();
 
             for (const node of this.nodes) {
-                const errors = result.errorsByPackage.get(node.pkg.path);
-                if (errors) {
+                if (result.errorsByPackage.has(node.pkg.path)) {
                     failed.add(node);
-                    process.stderr.write(`${errors}\n`);
                 }
             }
 
@@ -230,6 +249,11 @@ export class Graph {
         }
 
         await progress.run("Transpile", () => builder.flushWork());
+
+        if (!result.ok) {
+            // Partial transpile output for clean packages is preserved; failure must still surface to CI
+            process.exit(1);
+        }
     }
 
     display() {
