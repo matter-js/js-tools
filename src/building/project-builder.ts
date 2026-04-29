@@ -139,8 +139,27 @@ export class ProjectBuilder {
                 // Types were already checked by batched tsgo -b.  Enqueue remaining work into the shared work queue
                 // for throttled parallel execution.  API SHA is unnecessary — tsgo -b handles incremental tracking
                 // internally.
+                // copyDeclarationsToCjs reads dist/esm while buildSource("esm") writes hand-authored declarations there
+                let esmSourceDone: Promise<void> | undefined;
+                let resolveEsmSource: (() => void) | undefined;
+                let rejectEsmSource: ((e: unknown) => void) | undefined;
+
                 if (targets.has(Target.esm)) {
-                    this.#work.push(() => project.buildSource("esm"));
+                    if (targets.has(Target.cjs)) {
+                        esmSourceDone = new Promise<void>((resolve, reject) => {
+                            resolveEsmSource = resolve;
+                            rejectEsmSource = reject;
+                        });
+                    }
+                    this.#work.push(async () => {
+                        try {
+                            await project.buildSource("esm");
+                            resolveEsmSource?.();
+                        } catch (e) {
+                            rejectEsmSource?.(e);
+                            throw e;
+                        }
+                    });
                     if (project.pkg.hasTests) {
                         this.#work.push(() => project.buildTests("esm"));
                     }
@@ -150,6 +169,9 @@ export class ProjectBuilder {
                     // to avoid mkdir races
                     this.#work.push(async () => {
                         if (project.pkg.isLibrary) {
+                            if (esmSourceDone) {
+                                await esmSourceDone;
+                            }
                             await copyDeclarationsToCjs(project.pkg);
                         }
                         await project.buildSource("cjs");

@@ -6,10 +6,14 @@ nacho-build --clean
 for f in \
     packages/a/dist/esm/index.js \
     packages/a/dist/esm/index.d.ts \
+    packages/a/dist/esm/extras.d.ts \
     packages/a/dist/cjs/index.js \
+    packages/a/dist/cjs/extras.d.ts \
     packages/b/dist/esm/index.js \
     packages/b/dist/esm/index.d.ts \
-    packages/b/dist/cjs/index.js
+    packages/b/dist/esm/extras.d.ts \
+    packages/b/dist/cjs/index.js \
+    packages/b/dist/cjs/extras.d.ts
 do
     test -f "$f" || { echo "missing $f" >&2; exit 1; }
 done
