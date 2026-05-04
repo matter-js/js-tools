@@ -35,3 +35,22 @@ if [ -n "$changed" ]; then
     echo "$changed" >&2
     exit 1
 fi
+
+# nacho-build version --apply must strip `dev-types` from exports so published packages don't expose TS source via
+# customConditions resolution (which would type-check node_modules .ts under skipLibCheck blind spot).
+grep -q '"dev-types"' packages/a/package.json || {
+    echo "expected packages/a/package.json to contain dev-types pre-apply" >&2
+    exit 1
+}
+echo "1.2.3" > version.txt
+nacho-build version --apply
+if grep -q '"dev-types"' packages/a/package.json; then
+    echo "ERROR: nacho-build version --apply did not strip dev-types from packages/a/package.json" >&2
+    cat packages/a/package.json >&2
+    exit 1
+fi
+grep -q '"version": "1.2.3"' packages/a/package.json || {
+    echo "ERROR: nacho-build version --apply did not update version in packages/a/package.json" >&2
+    cat packages/a/package.json >&2
+    exit 1
+}

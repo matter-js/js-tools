@@ -128,6 +128,10 @@ export class Versioner {
             }
         }
 
+        if (json.exports !== undefined && stripDevTypes(json.exports)) {
+            changed = true;
+        }
+
         return changed;
     }
 
@@ -145,4 +149,34 @@ export class Versioner {
         }
         return changed;
     }
+}
+
+// Published packages must not advertise `dev-types`: with `customConditions: ["dev-types"]`, consumers resolve to
+// `.ts` source under node_modules, which TS type-checks (skipLibCheck only skips `.d.ts`).
+function stripDevTypes(node: unknown): boolean {
+    if (Array.isArray(node)) {
+        let changed = false;
+        for (const item of node) {
+            if (stripDevTypes(item)) {
+                changed = true;
+            }
+        }
+        return changed;
+    }
+    if (typeof node !== "object" || node === null) {
+        return false;
+    }
+    const obj = node as Record<string, unknown>;
+    let changed = false;
+    for (const key of Object.keys(obj)) {
+        if (key === "dev-types") {
+            delete obj[key];
+            changed = true;
+            continue;
+        }
+        if (stripDevTypes(obj[key])) {
+            changed = true;
+        }
+    }
+    return changed;
 }
